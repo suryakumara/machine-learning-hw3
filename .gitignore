@@ -1,0 +1,34 @@
+# Datasets (large, and the Kaggle competition data should not be redistributed)
+data/
+*.gz
+*.zip
+
+# Trained models and checkpoints
+*.pt
+*.pth
+*.h5
+*.keras
+*.pkl
+*.joblib
+models/
+
+# Python
+__pycache__/
+*.py[cod]
+.ipynb_checkpoints/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Credentials (never commit these)
+kaggle.json
+.env
+
+# macOS
+.DS_Store
+
+# Editors
+.vscode/
+.idea/

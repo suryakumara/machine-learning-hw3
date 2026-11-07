@@ -1,11 +1,3 @@
-"""Figures for the Question 3.1 report, made from the cross-validation results.
-
-Reads every results/tables/experiments_cv_*.csv and loss_curves_*.csv
-(quick test runs are skipped), and saves each figure as PNG (300 dpi, for
-Word/Docs) and PDF (vector, for LaTeX) in results/figures/.
-
-Run from anywhere:  python src/plot_results.py
-"""
 from pathlib import Path
 
 import matplotlib

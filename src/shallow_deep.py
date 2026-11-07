@@ -1,9 +1,4 @@
-"""Experiment (a)(b): shallow vs deep fully connected networks on MNIST and SAI.
 
-Runs stratified 5-fold cross-validation for several network depths and saves
-the mean training and validation accuracy to results/tables/shallow_deep_cv.csv.
-Run from anywhere:  python src/shallow_deep.py
-"""
 import sys
 import time
 import warnings

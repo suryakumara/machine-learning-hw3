@@ -1,29 +1,3 @@
-"""Experiment (d): does it help to interpret the output units as probabilities?
-
-Compares three models with the same stratified 5-fold cross-validation:
-
-  linear output + squared error   MLP, 1 hidden layer, outputs are plain numbers
-                                   trained towards one-hot targets (like the
-                                   gradient descent rule with no threshold)
-  softmax + cross-entropy          the same MLP, but outputs are probabilities and
-                                   the loss is the log loss (logistic-regression kind)
-  logistic regression              no hidden layer, softmax output (baseline)
-
-Metrics per model: accuracy, log loss, Brier score (mean squared error between
-the predicted probabilities and the one-hot label), and the share of raw outputs
-that fall outside [0, 1] - real probabilities never do.
-
-For the squared-error model, which has no probabilities, the outputs are clipped
-to a small positive value and rescaled to sum to 1 before log loss and Brier
-score are computed. Its accuracy uses the largest output (argmax) and needs no
-such fix.
-
-Run from anywhere:
-  python src/probability_output.py                 # both datasets
-  python src/probability_output.py --data MNIST
-Output:
-  results/tables/probability_output_<data>.csv
-"""
 import argparse
 import os
 import sys

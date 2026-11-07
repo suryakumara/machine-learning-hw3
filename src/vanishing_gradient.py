@@ -1,28 +1,4 @@
-"""Experiment (c): is there a vanishing gradient in deep fully connected networks?
-
-Trains networks of several depths with ReLU and with sigmoid hidden layers,
-using plain mini-batch SGD (as taught in class, no momentum), and records the
-size of the gradient in every layer during training.
-
-Evidence of vanishing gradient: the gradient in the FIRST layers is many times
-smaller than in the LAST layers, the gap grows with depth, and the training
-loss stays high or falls slowly.
-
-The gradient size of a layer is the mean absolute gradient per weight,
-mean(|dE/dw|), so layers with different numbers of weights can be compared.
-
-Uses the GPU automatically if PyTorch finds one (CUDA), otherwise the CPU.
-A diagnostic, so one fixed 80/20 train/validation split is used instead of
-cross-validation.
-
-Run from anywhere:
-  python src/vanishing_gradient.py                      # MNIST
-  python src/vanishing_gradient.py --data SAI
-  python src/vanishing_gradient.py --depths 3 8 15 --epochs 5
-Outputs:
-  results/tables/vanishing_gradient_<data>_grads.csv    gradient size per layer, per epoch
-  results/tables/vanishing_gradient_<data>_epochs.csv   train loss and validation accuracy per epoch
-"""
+Ø
 import argparse
 import sys
 import time

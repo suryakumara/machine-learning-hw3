@@ -6,9 +6,7 @@ import time
 import warnings
 from pathlib import Path
 
-# Parallel folds run in separate worker processes, which do not inherit
-# warnings.filterwarnings() from this process. The environment variable is
-# inherited, so it also silences ConvergenceWarning (a UserWarning) there.
+
 os.environ["PYTHONWARNINGS"] = "ignore::UserWarning"
 
 import numpy as np

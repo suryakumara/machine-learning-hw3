@@ -1,0 +1,2 @@
+hidden_layers,alpha,epochs_run,train_acc,test_acc,test_log_loss,seconds
+"(256,)",0.0001,20,0.9992333333333333,0.9799,0.07755559229572888,56.7

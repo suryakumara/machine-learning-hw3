@@ -1,20 +1,5 @@
-"""Experiments for Question 3.1 (a)(b)(d)(e): fully connected networks (MLP)
-on MNIST and the Spooky Author Identification (SAI) dataset.
 
-Three experiments, all with stratified 5-fold cross-validation:
-  depth : 1, 2, 3, 5, 8 hidden layers of 128 neurons   (MNIST + SAI)
-  width : 1 hidden layer of 32, 64, 128, 256 neurons    (MNIST + SAI)
-  reg   : ways to reduce overfitting, 1 hidden layer    (SAI only)
-
-For every configuration it saves accuracy, log loss, the train-validation gap,
-the number of parameters and the number of epochs actually run, plus the
-training loss of every epoch (for learning-curve plots).
-
-Run from anywhere:  python src/shallow_deep.py
-Outputs:
-  results/tables/experiments_cv.csv   one row per (experiment, dataset, config)
-  results/tables/loss_curves.csv      training loss per epoch, per fold
-"""
+import argparse
 import os
 import sys
 import time
@@ -45,7 +30,7 @@ QUICK = False            # True: tiny test run (2 folds, 3 epochs, 2 configs per
 EXPERIMENTS = ["depth", "width", "reg"]   # remove names to skip experiments
 N_FOLDS = 5
 MAX_EPOCHS = 20
-N_JOBS = -1              # folds in parallel; use 2 if the machine runs out of RAM
+N_JOBS = -1              # folds in parallel; use 2 if the computer becomes too slow
 
 BASE = dict(alpha=1e-4)  # default MLP settings shared by every configuration
 
@@ -150,8 +135,25 @@ def evaluate(dataset, X, y, cfg):
 
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="MLP experiments for Question 3.1")
+    parser.add_argument("--exp", nargs="+", choices=list(CONFIGS), default=EXPERIMENTS,
+                        help="experiments to run (default: all)")
+    parser.add_argument("--data", nargs="+", choices=["MNIST", "SAI"], default=["MNIST", "SAI"],
+                        help="datasets to run (default: both)")
+    parser.add_argument("--quick", action="store_true", help="tiny test run")
+    args = parser.parse_args()
+    if args.quick and not QUICK:
+        QUICK = True
+        N_FOLDS, MAX_EPOCHS = 2, 3
+        CONFIGS = {name: dict(list(cfgs.items())[:2]) for name, cfgs in CONFIGS.items()}
+    EXPERIMENTS = args.exp
+    DATASETS_PER_EXPERIMENT = {e: [d for d in ds if d in args.data]
+                               for e, ds in DATASETS_PER_EXPERIMENT.items()}
+
     data = {}
     needed = {d for e in EXPERIMENTS for d in DATASETS_PER_EXPERIMENT[e]}
+    if not needed:
+        sys.exit(f"Nothing to run: experiment(s) {EXPERIMENTS} do not use dataset(s) {args.data}.")
     if "MNIST" in needed:
         X = load_images(ROOT / "data/mnist/train-images-idx3-ubyte.gz") / 255.0
         y = load_labels(ROOT / "data/mnist/train-labels-idx1-ubyte.gz")
@@ -159,6 +161,14 @@ if __name__ == "__main__":
     if "SAI" in needed:
         texts, y, _ = load_sai(ROOT / "data/sai/train.csv")
         data["SAI"] = (np.array(texts, dtype=object), y)
+
+    out_dir = ROOT / "results/tables"
+    out_dir.mkdir(parents=True, exist_ok=True)
+    suffix = "_" + "-".join(EXPERIMENTS) + "_" + "-".join(sorted(needed))
+    suffix += "_quick" if QUICK else ""
+    results_file = out_dir / f"experiments_cv{suffix}.csv"
+    curves_file = out_dir / f"loss_curves{suffix}.csv"
+    print("Results will be saved to:", results_file, flush=True)
 
     rows, curve_rows, cache = [], [], {}
     for experiment in EXPERIMENTS:
@@ -183,11 +193,10 @@ if __name__ == "__main__":
                       f"gap {m['gap']:.4f} | val logloss {m['val_log_loss']:.3f} | "
                       f"params {m['n_params']:,} | epochs {m['epochs_run']:.1f} | "
                       f"{'reused' if reused else str(m['seconds']) + ' s'}", flush=True)
+                # Save after every configuration, so finished results are kept
+                # even if the run stops halfway.
+                pd.DataFrame(rows).to_csv(results_file, index=False)
+                pd.DataFrame(curve_rows).to_csv(curves_file, index=False)
 
-    out_dir = ROOT / "results/tables"
-    out_dir.mkdir(parents=True, exist_ok=True)
-    suffix = "_quick" if QUICK else ""
-    pd.DataFrame(rows).to_csv(out_dir / f"experiments_cv{suffix}.csv", index=False)
-    pd.DataFrame(curve_rows).to_csv(out_dir / f"loss_curves{suffix}.csv", index=False)
-    print("Saved:", out_dir / f"experiments_cv{suffix}.csv")
-    print("Saved:", out_dir / f"loss_curves{suffix}.csv")
+    print("Saved:", results_file)
+    print("Saved:", curves_file)

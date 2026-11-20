@@ -23,10 +23,15 @@ parser.add_argument("--activations", nargs="+", choices=["relu", "sigmoid"],
                     default=["relu", "sigmoid"])
 parser.add_argument("--units", type=int, default=128, help="neurons per hidden layer")
 parser.add_argument("--epochs", type=int, default=10)
-parser.add_argument("--lr", type=float, default=0.05, help="SGD learning rate")
+parser.add_argument("--optimizer", choices=["sgd", "adam"], default="sgd",
+                    help="sgd = plain SGD as in class, adam = Adam (as in Table 1)")
+parser.add_argument("--lr", type=float, default=None,
+                    help="learning rate (default 0.05 for SGD, 0.001 for Adam)")
 parser.add_argument("--batch", type=int, default=128, help="mini-batch size")
 parser.add_argument("--seed", type=int, default=0)
 args = parser.parse_args()
+if args.lr is None:
+    args.lr = 0.05 if args.optimizer == "sgd" else 0.001
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print("Device:", device, flush=True)
@@ -91,7 +96,10 @@ def train_one(Xtr, ytr, Xva, yva, n_in, n_out, depth, activation):
     torch.manual_seed(args.seed)
     model = make_model(n_in, n_out, depth, activation)
     linears = [m for m in model if isinstance(m, nn.Linear)]   # depth hidden + 1 output
-    optimizer = torch.optim.SGD(model.parameters(), lr=args.lr)  # plain SGD, no momentum
+    if args.optimizer == "sgd":
+        optimizer = torch.optim.SGD(model.parameters(), lr=args.lr)  # plain SGD, no momentum
+    else:
+        optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)  # same as Table 1
     loss_fn = nn.CrossEntropyLoss()                               # softmax + log loss
     gen = torch.Generator().manual_seed(args.seed)
 
@@ -114,14 +122,14 @@ def train_one(Xtr, ytr, Xva, yva, n_in, n_out, depth, activation):
         grads = grad_sum / n_batches
         val_loss, val_acc = evaluate(model, Xva, yva, loss_fn)
         for layer, g in enumerate(grads, start=1):
-            grad_rows.append({"data": args.data, "activation": activation, "depth": depth,
+            grad_rows.append({"data": args.data, "optimizer": args.optimizer, "activation": activation, "depth": depth,
                               "epoch": epoch, "layer": layer, "n_layers": len(linears),
                               "is_output": layer == len(linears), "grad_mean_abs": g})
-        epoch_rows.append({"data": args.data, "activation": activation, "depth": depth,
+        epoch_rows.append({"data": args.data, "optimizer": args.optimizer, "activation": activation, "depth": depth,
                            "epoch": epoch, "train_loss": loss_sum / n_batches,
                            "val_loss": val_loss, "val_acc": val_acc,
                            "first_to_last_hidden_ratio": grads[0] / grads[depth - 1]})
-        print(f"{activation:7s} | depth {depth:2d} | epoch {epoch:2d} | "
+        print(f"{args.optimizer:4s} | {activation:7s} | depth {depth:2d} | epoch {epoch:2d} | "
               f"train loss {loss_sum / n_batches:.4f} | val acc {val_acc:.4f} | "
               f"|grad| layer 1 {grads[0]:.2e}, last hidden {grads[depth - 1]:.2e} "
               f"(ratio {grads[0] / grads[depth - 1]:.3g})", flush=True)
@@ -130,13 +138,16 @@ def train_one(Xtr, ytr, Xva, yva, n_in, n_out, depth, activation):
 
 if __name__ == "__main__":
     Xtr, ytr, Xva, yva, n_in, n_out = load_data()
+    print(f"Optimizer: {args.optimizer}, learning rate {args.lr}", flush=True)
     print(f"{args.data}: {len(ytr)} train / {len(yva)} validation, {n_in} inputs, "
           f"{n_out} classes", flush=True)
 
     out_dir = ROOT / "results/tables"
     out_dir.mkdir(parents=True, exist_ok=True)
-    grads_file = out_dir / f"vanishing_gradient_{args.data}_grads.csv"
-    epochs_file = out_dir / f"vanishing_gradient_{args.data}_epochs.csv"
+    # SGD keeps the old file names (used by plot_results.py); Adam gets its own files.
+    tag = "" if args.optimizer == "sgd" else "_adam"
+    grads_file = out_dir / f"vanishing_gradient_{args.data}{tag}_grads.csv"
+    epochs_file = out_dir / f"vanishing_gradient_{args.data}{tag}_epochs.csv"
 
     all_grads, all_epochs = [], []
     for activation in args.activations:
